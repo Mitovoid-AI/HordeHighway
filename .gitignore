@@ -1,0 +1,16 @@
+# Signing keys — never commit
+*.keystore
+*.jks
+
+# Build outputs (APKs are published as GitHub Release assets)
+*.apk
+*.apk.idsig
+*.aab
+
+# Godot cache / per-machine data
+.godot/
+godot-game/.godot/
+*.tmp
+
+# Node / tooling
+node_modules/
