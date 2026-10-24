@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Horde Highway</title>
+  <meta name="description" content="Lane-runner zombie shooter: grow your squad through math gates, dodge traps, beat the boss. Play in the browser or install on Android.">
+  <meta property="og:title" content="Horde Highway">
+  <meta property="og:description" content="Grow your squad. Pick the right gate. Survive the horde.">
+  <meta property="og:image" content="img/run.jpg">
+  <style>
+    :root {
+      --bg: #141c30; --panel: #1f2a44; --panel-2: #2c3a5c; --text: #eef2fb; --muted: #aab4cc;
+      --gold: #ffd23f; --green: #4cd964; --green-dark: #2a8c3c; --blue: #3aa0ff; --red: #ff5e57;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--bg); color: var(--text); font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; line-height: 1.55; }
+    a { color: var(--gold); }
+    .wrap { max-width: 1040px; margin: 0 auto; padding: 0 16px; }
+
+    header { padding: 56px 0 40px; text-align: center; background: radial-gradient(ellipse at top, #24406a 0%, var(--bg) 70%); }
+    h1 { font-size: clamp(40px, 9vw, 76px); font-weight: 900; letter-spacing: 1px; color: var(--gold); line-height: 1.05; text-shadow: 0 4px 0 rgba(0,0,0,.35); }
+    .tagline { margin-top: 12px; font-size: clamp(17px, 3.4vw, 21px); color: var(--muted); }
+    .cta { margin-top: 28px; display: flex; flex-wrap: wrap; justify-content: center; }
+    .btn { display: inline-block; margin: 6px; padding: 14px 22px; border-radius: 14px; font-weight: 800; font-size: 17px; text-decoration: none; }
+    .btn.play { background: var(--green); color: #08380f; box-shadow: 0 5px 0 var(--green-dark); }
+    .btn.apk { background: var(--panel-2); color: var(--text); box-shadow: 0 5px 0 #121a2c; }
+    .btn small { display: block; font-weight: 600; font-size: 12px; opacity: .75; }
+    .btn:active { transform: translateY(3px); box-shadow: none; }
+
+    .shots { display: flex; justify-content: center; flex-wrap: wrap; margin: 8px -6px 0; }
+    .shots figure { width: calc(25% - 12px); min-width: 150px; margin: 6px; }
+    .shots img { width: 100%; display: block; border-radius: 18px; border: 3px solid #2c3a5c; box-shadow: 0 10px 24px rgba(0,0,0,.35); }
+    .shots figcaption { text-align: center; color: var(--muted); font-size: 14px; margin-top: 6px; }
+
+    section { padding: 44px 0 8px; }
+    h2 { font-size: 28px; font-weight: 900; margin-bottom: 18px; }
+    .grid { display: flex; flex-wrap: wrap; margin: 0 -8px; }
+    .card { width: calc(33.333% - 16px); min-width: 230px; flex-grow: 1; margin: 8px; background: var(--panel); border-radius: 16px; padding: 18px; }
+    .card h3 { font-size: 18px; margin-bottom: 6px; }
+    .card p { color: var(--muted); font-size: 15px; }
+    .tag { display: inline-block; font-size: 12px; font-weight: 800; padding: 2px 8px; border-radius: 999px; margin-bottom: 8px; }
+    .tag.blue { background: rgba(58,160,255,.18); color: #8cc8ff; }
+    .tag.red { background: rgba(255,94,87,.18); color: #ff9c97; }
+    .tag.gold { background: rgba(255,210,63,.16); color: var(--gold); }
+
+    table { width: 100%; border-collapse: collapse; background: var(--panel); border-radius: 16px; overflow: hidden; font-size: 15px; }
+    th, td { text-align: left; padding: 12px 14px; border-bottom: 1px solid #2c3a5c; vertical-align: top; }
+    th { background: var(--panel-2); }
+    tr:last-child td { border-bottom: 0; }
+    .table-scroll { overflow-x: auto; }
+
+    ol.steps { counter-reset: s; list-style: none; }
+    ol.steps li { position: relative; padding: 12px 14px 12px 56px; margin-bottom: 10px; background: var(--panel); border-radius: 14px; }
+    ol.steps li::before { counter-increment: s; content: counter(s); position: absolute; left: 14px; top: 11px; width: 28px; height: 28px; border-radius: 50%; background: var(--gold); color: #3a2a00; font-weight: 900; text-align: center; line-height: 28px; }
+    .note { color: var(--muted); font-size: 14px; margin-top: 10px; }
+
+    footer { margin-top: 48px; padding: 28px 0 40px; border-top: 1px solid #24304d; color: var(--muted); font-size: 14px; }
+    footer p + p { margin-top: 8px; }
+
+    @media (max-width: 640px) {
+      .shots figure { width: calc(50% - 12px); min-width: 0; }
+      .card { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap">
+      <h1>HORDE HIGHWAY</h1>
+      <p class="tagline">Grow your squad. Pick the right gate. Survive the horde.</p>
+      <div class="cta">
+        <a class="btn play" href="play/">▶ Play in browser</a>
+        <a class="btn apk" href="https://github.com/Mitovoid-AI/HordeHighway/releases/latest/download/HordeHighway-Godot.apk">Android APK<small>Godot · 53 MB</small></a>
+        <a class="btn apk" href="https://github.com/Mitovoid-AI/HordeHighway/releases/latest/download/HordeHighway-HTML5.apk">Android Lite APK<small>Web engine · 0.8 MB</small></a>
+      </div>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <div class="shots">
+      <figure><img src="img/menu.jpg" alt="Main menu with upgrades and Play button" loading="lazy"><figcaption>Upgrade between runs</figcaption></figure>
+      <figure><img src="img/run.jpg" alt="Squad running toward a ÷2 and +23 gate" loading="lazy"><figcaption>Pick the right gate</figcaption></figure>
+      <figure><img src="img/horde.jpg" alt="Squad of 52 shooting a horde" loading="lazy"><figcaption>Mow down the horde</figcaption></figure>
+      <figure><img src="img/boss.jpg" alt="Squad fighting the boss" loading="lazy"><figcaption>Beat the boss</figcaption></figure>
+    </div>
+
+    <section>
+      <h2>How it plays</h2>
+      <div class="grid">
+        <div class="card"><span class="tag blue">Gates</span><h3>Math gates you can shoot</h3><p>+, −, × and ÷ gates change your squad size. Shoot a gate to improve it — bad gates shrink and can flip to +1.</p></div>
+        <div class="card"><span class="tag red">Traps</span><h3>Dodge the barricades</h3><p>Run into a trap and it costs you soldiers. Steer with a swipe, the mouse, or A/D.</p></div>
+        <div class="card"><span class="tag red">Enemies</span><h3>Five kinds of undead</h3><p>Walkers, fast skeletons, armoured tanks, ranged vampires that throw dodgeable shots, and a gold ghost worth 15 coins.</p></div>
+        <div class="card"><span class="tag gold">Loot</span><h3>Crates & guns</h3><p>Shoot crates for extra soldiers or a gun upgrade: Pistol → SMG → Rifle → Gatling.</p></div>
+        <div class="card"><span class="tag gold">Skills</span><h3>Frost, Shock, Inferno</h3><p>Freeze the horde, zap everything nearby, or burn the road ahead.</p></div>
+        <div class="card"><span class="tag blue">Physics</span><h3>Things fly</h3><p>Defeated zombies tumble as physics bodies and crates burst into debris.</p></div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Two versions</h2>
+      <div class="table-scroll">
+        <table>
+          <tr><th></th><th>Godot APK</th><th>Lite APK / browser</th></tr>
+          <tr><td>Engine</td><td>Godot 4.7 (native)</td><td>three.js + cannon-es in a WebView / your browser</td></tr>
+          <tr><td>Size</td><td>53 MB</td><td>0.8 MB APK · ~4 MB web</td></tr>
+          <tr><td>Needs</td><td>Android 7+ with OpenGL ES 3</td><td>Android 7+ with an up-to-date Android System WebView, or any modern browser</td></tr>
+          <tr><td>Gameplay</td><td colspan="2">Identical rules, levels and upgrades</td></tr>
+        </table>
+      </div>
+    </section>
+
+    <section>
+      <h2>Install on Android</h2>
+      <ol class="steps">
+        <li>Download one of the APKs above on your phone.</li>
+        <li>Open it. Android asks to allow installs from your browser or Files app — allow it once.</li>
+        <li>Tap <b>Install</b>. If Play Protect warns about an unknown developer, choose <b>Install anyway</b> (the app is self-signed, not on Google Play).</li>
+      </ol>
+      <p class="note">Tested on an Android 11 emulator, not yet on a physical phone. No permissions, no ads, no network use. <a href="https://github.com/Mitovoid-AI/HordeHighway/blob/main/apk/README.md">Test notes</a>.</p>
+    </section>
+  </main>
+
+  <footer>
+    <div class="wrap">
+      <p>Source: <a href="https://github.com/Mitovoid-AI/HordeHighway">github.com/Mitovoid-AI/HordeHighway</a></p>
+      <p>3D models: <a href="https://kenney.nl">Kenney</a> (CC0). Libraries: three.js, cannon-es, Godot Engine (MIT).
+        An original game — it uses no code, art, audio, names or logos from any other game.</p>
+    </div>
+  </footer>
+</body>
+</html>
