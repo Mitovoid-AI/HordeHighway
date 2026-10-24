@@ -7,9 +7,9 @@
 
 Both: Android 7.0+ (API 24), portrait, no permissions, no ads, no network use.
 
-**Download:** the APKs are attached to the
-[latest GitHub Release](https://github.com/Mitovoid-AI/HordeHighway/releases/latest)
-(they are not committed to the repository).
+**Download** (open these links on your phone):
+[HordeHighway-Godot.apk](https://github.com/Mitovoid-AI/HordeHighway/raw/main/apk/HordeHighway-Godot.apk) ·
+[HordeHighway-HTML5.apk](https://github.com/Mitovoid-AI/HordeHighway/raw/main/apk/HordeHighway-HTML5.apk)
 
 ## Install on your phone
 

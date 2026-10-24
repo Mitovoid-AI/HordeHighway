@@ -2,8 +2,9 @@
 *.keystore
 *.jks
 
-# Build outputs (APKs are published as GitHub Release assets)
+# Build outputs — only the released APKs in apk/ are committed
 *.apk
+!apk/*.apk
 *.apk.idsig
 *.aab
 
