@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <title>Horde Highway</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <canvas id="game"></canvas>
+
+  <div id="hud" class="hidden">
+    <div class="hud-row">
+      <span id="hud-level">Level 1</span>
+      <span id="hud-weapon">Pistol</span>
+      <span id="hud-coins">0</span>
+    </div>
+    <div class="bar"><div id="hud-progress" class="bar-fill"></div></div>
+    <div id="boss-wrap" class="hidden">
+      <div class="boss-label">BRUTE</div>
+      <div class="bar boss"><div id="boss-fill" class="bar-fill"></div></div>
+    </div>
+  </div>
+
+  <div id="skills" class="hidden">
+    <button class="skill frost" data-skill="frost"><span class="name">Frost</span><span class="cd"></span></button>
+    <button class="skill shock" data-skill="shock"><span class="name">Shock</span><span class="cd"></span></button>
+    <button class="skill inferno" data-skill="inferno"><span class="name">Inferno</span><span class="cd"></span></button>
+  </div>
+
+  <div id="menu" class="overlay">
+    <div class="panel">
+      <h1>HORDE HIGHWAY</h1>
+      <p class="sub">Grow your squad. Pick the right gate. Survive the horde.</p>
+      <div class="stats">
+        <div>Level <b id="menu-level">1</b></div>
+        <div>Coins <b id="menu-coins">0</b></div>
+      </div>
+      <div id="upgrades"></div>
+      <button id="play" class="big" disabled>LOADING…</button>
+      <p class="help">Drag or use A/D · Arrow keys to steer · 1 2 3 for skills</p>
+    </div>
+  </div>
+
+  <div id="result" class="overlay hidden">
+    <div class="panel">
+      <h1 id="result-title">VICTORY</h1>
+      <p id="result-text"></p>
+      <button id="result-btn" class="big">CONTINUE</button>
+    </div>
+  </div>
+
+  <!-- dist/game.js is built from src/ by ./bundle.sh (no import maps, so older Android WebViews work) -->
+  <script type="module" src="dist/game.js"></script>
+</body>
+</html>
