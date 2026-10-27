@@ -1,0 +1,5 @@
+Toon Shooter Game Kit (Dec 2022) by Quaternius — glTF subset only (Blend/FBX/OBJ copies removed).
+
+The downloaded zip contains no license file. The pack page states the license is CC0 1.0
+(public domain): https://quaternius.com/packs/toonshootergamekit.html (checked 2026-10-27).
+CC0 1.0: https://creativecommons.org/publicdomain/zero/1.0/

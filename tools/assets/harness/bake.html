@@ -1,0 +1,43 @@
+<!doctype html><html><body style="margin:0">
+<script type="importmap">{"imports":{"three":"./vendor/three.module.js","three/addons/":"./vendor/addons/"}}</script>
+<script type="module">
+// Bakes front / -X side / +X side orthographic views of each building for far-LOD impostors.
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+const q = new URLSearchParams(location.search);
+const PX = 24; // pixels per metre
+const R = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
+R.outputColorSpace = THREE.SRGBColorSpace; R.toneMapping = THREE.ACESFilmicToneMapping; R.setClearColor(0x000000, 0);
+const S = new THREE.Scene();
+S.environment = new THREE.PMREMGenerator(R).fromScene(new RoomEnvironment(), 0.04).texture;
+S.environmentIntensity = 0.45;
+S.add(new THREE.HemisphereLight(0xe8f1ff, 0x50483f, 1.3)); // same as the game, minus the sun
+const front = new THREE.DirectionalLight(0xffffff, 0.9); S.add(front, front.target);
+const glb = (await new GLTFLoader().loadAsync('dtw/' + q.get('g'))).scene;
+const out = {};
+for (const name of q.get('m').split(',')) {
+  const o = glb.getObjectByName(name).clone(); S.add(o);
+  const b = new THREE.Box3().setFromObject(o);
+  const zFront = Math.min(b.max.z, 0.3); // ignore stairs sticking out of the facade
+  const views = {
+    front: { pos: [0, 0, 1], w: b.max.x - b.min.x, cx: (b.min.x + b.max.x) / 2, cz: 0 },
+    left: { pos: [-1, 0, 0], w: zFront - b.min.z, cx: 0, cz: (b.min.z + zFront) / 2 },
+    right: { pos: [1, 0, 0], w: zFront - b.min.z, cx: 0, cz: (b.min.z + zFront) / 2 },
+  };
+  const h = b.max.y - b.min.y, cy = (b.min.y + b.max.y) / 2;
+  out[name] = { min: b.min.toArray(), max: b.max.toArray(), zFront, views: {} };
+  for (const [k, v] of Object.entries(views)) {
+    const W = Math.round(v.w * PX), H = Math.round(h * PX);
+    R.setSize(W, H, false);
+    const cam = new THREE.OrthographicCamera(-v.w / 2, v.w / 2, h / 2, -h / 2, 0.1, 100);
+    const c = new THREE.Vector3(v.cx, cy, v.cz);
+    cam.position.copy(c).addScaledVector(new THREE.Vector3(...v.pos), 50); cam.lookAt(c);
+    front.position.copy(cam.position); front.target.position.copy(c);
+    R.render(S, cam);
+    out[name].views[k] = R.domElement.toDataURL('image/png');
+  }
+  S.remove(o);
+}
+window.result = out;
+</script></body></html>

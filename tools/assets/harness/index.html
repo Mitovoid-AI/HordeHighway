@@ -1,0 +1,27 @@
+<!doctype html><html><body style="margin:0;background:#888">
+<script type="importmap">{"imports":{"three":"./vendor/three.module.js","three/addons/":"./vendor/addons/"}}</script>
+<script type="module">
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+const q = new URLSearchParams(location.search);
+const names = (q.get('m') || '').split(',');
+const R = new THREE.WebGLRenderer({ antialias: true }); R.setSize(1280, 720); R.shadowMap.enabled = true;
+R.outputColorSpace = THREE.SRGBColorSpace; R.toneMapping = THREE.ACESFilmicToneMapping;
+document.body.appendChild(R.domElement);
+const S = new THREE.Scene(); S.background = new THREE.Color(0x9fb8d0);
+S.add(new THREE.HemisphereLight(0xdde8ff, 0x554433, 1.4));
+const sun = new THREE.DirectionalLight(0xfff0dd, 2.2); sun.position.set(20, 30, 15); sun.castShadow = true;
+sun.shadow.camera.left = sun.shadow.camera.bottom = -40; sun.shadow.camera.right = sun.shadow.camera.top = 40; sun.shadow.mapSize.set(2048, 2048); S.add(sun);
+const L = new GLTFLoader(); let x = 0; const box = new THREE.Box3();
+const glb = q.get('g') ? (await L.loadAsync('dtw/' + q.get('g'))).scene : null;
+for (const n of names) {
+  const o = glb ? glb.getObjectByName(n).clone() : (await L.loadAsync('dt/' + n + '.gltf')).scene;
+  o.traverse(c => { if (c.isMesh) { c.castShadow = c.receiveShadow = true; for (const m of [].concat(c.material)) { m.vertexColors = false; m.needsUpdate = true; } } });
+  box.setFromObject(o); const w = box.max.x - box.min.x;
+  o.position.x = x - box.min.x; x += w + 1; S.add(o);
+}
+box.setFromObject(S); const c = box.getCenter(new THREE.Vector3()); const sz = box.getSize(new THREE.Vector3()).length();
+const cam = new THREE.PerspectiveCamera(40, 1280 / 720, 0.1, 500);
+cam.position.set(c.x + sz * 0.35, c.y + sz * 0.3, c.z + sz * 0.75); cam.lookAt(c);
+R.render(S, cam); window.done = true;
+</script></body></html>

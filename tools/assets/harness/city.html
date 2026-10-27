@@ -1,0 +1,26 @@
+<!doctype html><html><body style="margin:0">
+<script type="importmap">{"imports":{"three":"./vendor/three.module.js","three/addons/":"./vendor/addons/"}}</script>
+<script type="module">
+import * as THREE from 'three';
+import { loadAssets } from './game/src/assets.js';
+import { buildCity, updateCityLod } from './game/src/city.js';
+const q = new URLSearchParams(location.search);
+const R = new THREE.WebGLRenderer({ antialias: false }); R.setSize(432, 768); R.shadowMap.enabled = q.get('sh') !== '0';
+document.body.appendChild(R.domElement);
+const S = new THREE.Scene();
+const sun = new THREE.DirectionalLight(0xffffff, 2); sun.castShadow = true;
+Object.assign(sun.shadow.camera, { left: -28, right: 28, top: 34, bottom: -34, near: 1, far: 120 }); sun.shadow.camera.updateProjectionMatrix();
+S.add(sun, sun.target, new THREE.HemisphereLight());
+await loadAssets();
+let seed = 99; const rng = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
+const g = new THREE.Group(); S.add(g); buildCity(g, 5, 30, 400, rng, 1);
+const far = Number(q.get('far') || 150);
+const cam = new THREE.PerspectiveCamera(62, 432 / 768, 0.1, far);
+const out = [];
+for (const z of [0, -100, -200]) {
+  cam.position.set(0, 13, z + 15); cam.lookAt(0, 0, z - 14);
+  sun.target.position.set(0, 0, z - 12); sun.position.set(26, 38 + 0, z - 12 + 12).add(new THREE.Vector3(0, 0, 0));
+  updateCityLod(cam.position.z); R.render(S, cam); out.push(R.info.render.triangles + '/' + R.info.render.calls);
+}
+window.result = out.join(' ');
+</script></body></html>

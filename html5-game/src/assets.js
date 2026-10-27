@@ -1,4 +1,4 @@
-// Loads the CC0 Kenney models (see ../CREDITS.md) and hands out animated clones.
+// Loads the CC0 Kenney and Quaternius models (see ../CREDITS.md) and hands out animated clones.
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js';
@@ -10,11 +10,9 @@ const MODELS = {
   vampire: 'graveyard/character-vampire', ghost: 'graveyard/character-ghost', keeper: 'graveyard/character-keeper',
   gunPistol: 'blaster/blaster-a', gunSmg: 'blaster/blaster-d', gunRifle: 'blaster/blaster-g', gunGatling: 'blaster/blaster-p',
   crate: 'blaster/crate-medium', barrel: 'survival/barrel', box: 'survival/box-large',
-  road: 'roads/road-straight', lamp: 'roads/light-square', barrier: 'roads/construction-barrier', cone: 'roads/construction-cone',
-  pine: 'graveyard/pine', pineCrooked: 'graveyard/pine-crooked', rocks: 'graveyard/rocks', rocksTall: 'graveyard/rocks-tall',
-  grave: 'graveyard/gravestone-round', graveCross: 'graveyard/gravestone-cross', fence: 'graveyard/fence',
-  lightpost: 'graveyard/lightpost-single', pumpkin: 'graveyard/pumpkin', hay: 'graveyard/hay-bale',
-  tree: 'survival/tree', treeTall: 'survival/tree-tall', rock: 'survival/rock-a',
+  lamp: 'roads/light-square', barrier: 'roads/construction-barrier', cone: 'roads/construction-cone',
+  fence: 'graveyard/fence',
+  city: 'downtown/city', // several models in one file; see city.js and getNode()
 };
 
 const loaded = {};
@@ -25,7 +23,7 @@ export async function loadAssets(onProgress) {
   let done = 0;
   await Promise.all(names.map(async (key) => {
     const gltf = await loader.loadAsync(`assets/models/${MODELS[key]}.glb`);
-    gltf.scene.traverse((o) => { if (o.isMesh) o.frustumCulled = !o.isSkinnedMesh; });
+    gltf.scene.traverse((o) => { if (o.isMesh) { o.frustumCulled = !o.isSkinnedMesh; o.castShadow = true; } });
     loaded[key] = { scene: gltf.scene, clips: gltf.animations, skinned: hasSkin(gltf.scene) };
     done++;
     if (onProgress) onProgress(done / names.length);
@@ -36,6 +34,11 @@ function hasSkin(root) {
   let s = false;
   root.traverse((o) => { if (o.isSkinnedMesh) s = true; });
   return s;
+}
+
+// A named model inside a multi-model file (not a clone: read-only source for batching).
+export function getNode(key, name) {
+  return loaded[key].scene.getObjectByName(name);
 }
 
 // Static (non-animated) clone sharing geometry and materials.

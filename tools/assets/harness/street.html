@@ -1,0 +1,25 @@
+<!doctype html><html><body style="margin:0">
+<script type="importmap">{"imports":{"three":"./vendor/three.module.js","three/addons/":"./vendor/addons/"}}</script>
+<script type="module">
+import * as THREE from 'three';
+import { loadAssets, getNode } from './game/src/assets.js';
+import { buildCity } from './game/src/city.js';
+const q = new URLSearchParams(location.search);
+const R = new THREE.WebGLRenderer(); R.setSize(432, 768); R.shadowMap.enabled = true; R.toneMapping = THREE.ACESFilmicToneMapping; document.body.appendChild(R.domElement);
+const S = new THREE.Scene(); S.background = new THREE.Color(0x335577);
+S.add(new THREE.HemisphereLight(0xe8f1ff, 0x50483f, Number(q.get('hemi') || 1.3)));
+const sun = new THREE.DirectionalLight(0xfff1dc, Number(q.get('sun') || 2.4)); sun.castShadow = true; sun.shadow.mapSize.set(1024, 1024);
+Object.assign(sun.shadow.camera, { left: -28, right: 28, top: 34, bottom: -34, near: 1, far: 120 }); sun.shadow.camera.updateProjectionMatrix();
+const off = (q.get('off') || '26,38,12').split(',').map(Number);
+sun.target.position.set(0, 0, -12); sun.position.set(off[0], off[1], -12 + off[2]); S.add(sun, sun.target);
+await loadAssets();
+let seed = 99; const rng = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
+const g = new THREE.Group(); S.add(g); buildCity(g, 5, 30, 100, rng, 1);
+const info = [];
+g.children.forEach((bm) => info.push(bm.material.name + ':' + bm.instanceCount + ':' + bm.visible + ':' + (bm.material.transparent ? 'T' : '')));
+const st = getNode('city', 'Street_4Lane'); const bx = new THREE.Box3().setFromObject(st);
+info.push('streetBox ' + bx.min.toArray().map((v) => v.toFixed(2)) + ' / ' + bx.max.toArray().map((v) => v.toFixed(2)));
+const cam = new THREE.PerspectiveCamera(62, 432 / 768, 0.1, 150); cam.position.set(0, 13, 15); cam.lookAt(0, 0, -14); const box = new THREE.Mesh(new THREE.BoxGeometry(2, 2, 2), new THREE.MeshStandardMaterial()); box.position.set(0, 1, 0); box.castShadow = true; S.add(box);
+R.render(S, cam); info.push('tris ' + R.info.render.triangles);
+window.result = info;
+</script></body></html>

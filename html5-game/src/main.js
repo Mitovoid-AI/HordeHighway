@@ -1,8 +1,10 @@
-// Horde Highway — HTML5 build (three.js + cannon-es). Models: CC0 Kenney packs (see ../CREDITS.md).
+// Horde Highway — HTML5 build (three.js + cannon-es). Models: CC0 Kenney and Quaternius packs (see ../CREDITS.md).
 import * as THREE from 'three';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { loadAssets, cloneAnimated, cloneStatic, tint } from './assets.js';
+import { buildCity, updateCityLod } from './city.js';
 import { spawnCorpse, spawnDebris, stepPhysics, clearPhysics, physicsStats } from './physics.js';
-import { initFx, fx, updateFx, shakeOffset, clearFx } from './fx.js';
+import { initFx, fx, updateFx, shakeOffset, clearFx, FX_TEX } from './fx.js';
 
 // ---------- Tunables (see zombie-survival-design.md) ----------
 const ROAD_HALF = 5;
@@ -103,17 +105,48 @@ function applyOp(count, gate) {
 const canvas = document.getElementById('game');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.05;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFShadowMap;
 
+const HAZE = 0xb4c9dc;
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x8fd3ff);
-scene.fog = new THREE.Fog(0x8fd3ff, 60, 140);
+scene.background = skyTexture();
+scene.fog = new THREE.Fog(HAZE, 55, 150);
+// Soft image-based light so the city's PBR materials (metal trim, glass) don't render black.
+scene.environment = new THREE.PMREMGenerator(renderer).fromScene(new RoomEnvironment(), 0.04).texture;
+scene.environmentIntensity = 0.45;
 
-const camera = new THREE.PerspectiveCamera(55, 1, 0.1, 150); // fog is opaque past 140
+const camera = new THREE.PerspectiveCamera(55, 1, 0.1, 160); // fog is opaque past 150
 
-scene.add(new THREE.HemisphereLight(0xffffff, 0x4a7a3a, 1.6));
-const sun = new THREE.DirectionalLight(0xffffff, 1.6);
-sun.position.set(6, 20, 8);
-scene.add(sun);
+function skyTexture() {
+  const c = document.createElement('canvas');
+  c.width = 2; c.height = 256;
+  const g = c.getContext('2d');
+  const grad = g.createLinearGradient(0, 0, 0, 256);
+  grad.addColorStop(0, '#4f8fd0');
+  grad.addColorStop(0.55, '#9cc4e4');
+  grad.addColorStop(1, '#b4c9dc');
+  g.fillStyle = grad;
+  g.fillRect(0, 0, 2, 256);
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  return t;
+}
+
+scene.add(new THREE.HemisphereLight(0xe8f1ff, 0x50483f, 1.3));
+// High warm sun behind the camera, a little to the right: buildings shade the right sidewalk and lane edge,
+// the road stays lit so the squad and horde shadows read. Follows the squad.
+const sun = new THREE.DirectionalLight(0xfff1dc, 2.4);
+sun.castShadow = true;
+sun.shadow.mapSize.set(1024, 1024);
+Object.assign(sun.shadow.camera, { left: -28, right: 28, top: 34, bottom: -34, near: 1, far: 120 });
+sun.shadow.camera.updateProjectionMatrix();
+sun.shadow.bias = -0.0006;
+sun.shadow.normalBias = 0.03;
+const SUN_OFFSET = new THREE.Vector3(8, 40, 22);
+scene.add(sun, sun.target);
 
 function resize() {
   const w = window.innerWidth, h = window.innerHeight;
@@ -137,7 +170,7 @@ const GEO = {
   trunk: new THREE.CylinderGeometry(0.2, 0.25, 1.2, 6),
   crown: new THREE.ConeGeometry(1.3, 2.6, 7),
   stripe: new THREE.BoxGeometry(0.25, 0.02, 2.5),
-  ring: new THREE.RingGeometry(0.9, 1.0, 48),
+  ring: new THREE.PlaneGeometry(2.2, 2.2), // textured ring (FX_TEX.ring)
   eye: new THREE.SphereGeometry(0.22, 8, 6),
 };
 
@@ -152,15 +185,15 @@ const MAT = {
   gateBad: new THREE.MeshLambertMaterial({ color: 0xff4d4d, transparent: true, opacity: 0.55 }),
   post: new THREE.MeshLambertMaterial({ color: 0xeeeeee }),
   road: new THREE.MeshLambertMaterial({ color: 0x8a8f99 }),
-  grass: new THREE.MeshLambertMaterial({ color: 0x6cc24a }),
+  ground: new THREE.MeshLambertMaterial({ color: 0x4a4d52 }),
   curb: new THREE.MeshLambertMaterial({ color: 0xd8d8d8 }),
   stripe: new THREE.MeshBasicMaterial({ color: 0xffffff }),
   trunk: new THREE.MeshLambertMaterial({ color: 0x7a5230 }),
   crown: new THREE.MeshLambertMaterial({ color: 0x3f9a3a }),
   boss: new THREE.MeshLambertMaterial({ color: 0x5b6b4a }),
   bossEye: new THREE.MeshBasicMaterial({ color: 0xff2a2a }),
-  shock: new THREE.MeshBasicMaterial({ color: 0xc58bff, transparent: true, opacity: 0.8, side: THREE.DoubleSide }),
-  inferno: new THREE.MeshBasicMaterial({ color: 0xff7a1a, transparent: true, opacity: 0.45 }),
+  shock: new THREE.MeshBasicMaterial({ map: FX_TEX.ring, color: 0xc58bff, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide }),
+  inferno: new THREE.MeshBasicMaterial({ color: 0xff5a10, transparent: true, opacity: 0.25, depthWrite: false }), // glow under the flames
 };
 
 const FROZEN_COLOR = 0x9ad8ff;
@@ -340,6 +373,7 @@ function clearLevel() {
   if (levelGroup) {
     levelGroup.traverse((o) => {
       if (o.userData.ownGeometry) o.geometry.dispose();
+      if (o.isBatchedMesh) o.dispose();
     });
     scene.remove(levelGroup);
   }
@@ -354,37 +388,17 @@ function clearLevel() {
   bullets.forEach((b) => { b.active = false; b.mesh.visible = false; });
 }
 
-const SCENERY = [
-  ['pine', 3.2], ['pineCrooked', 3.2], ['treeTall', 3.4], ['tree', 3.4], ['rocks', 2.2], ['rocksTall', 2.2],
-  ['grave', 2.4], ['graveCross', 2.4], ['lightpost', 2.6], ['pumpkin', 2.2], ['hay', 2.2], ['rock', 3],
-];
-
 function buildEnvironment(len) {
-  const grass = new THREE.Mesh(new THREE.PlaneGeometry(120, len), MAT.grass);
-  grass.userData.ownGeometry = true;
-  grass.rotation.x = -Math.PI / 2;
-  grass.position.set(0, -0.02, -len / 2 + 30);
-  levelGroup.add(grass);
+  const ground = new THREE.Mesh(new THREE.PlaneGeometry(120, len), MAT.ground);
+  ground.userData.ownGeometry = true;
+  ground.rotation.x = -Math.PI / 2;
+  ground.position.set(0, -0.02, -len / 2 + 30);
+  ground.receiveShadow = true;
+  levelGroup.add(ground);
 
-  // Road: Kenney 1×1 road tiles scaled to the road width.
-  const tile = ROAD_HALF * 2;
-  for (let z = 30; z > 30 - len; z -= tile) {
-    const t = cloneStatic('road', tile);
-    t.rotation.y = Math.PI / 2; // tile's lanes run along X; turn them along the road
-    t.position.set(0, 0, z - tile / 2);
-    levelGroup.add(t);
-  }
+  // Street, buildings and sidewalk props (batched; see city.js).
+  buildCity(levelGroup, ROAD_HALF, 30, len, mulberry32(99), Math.sign(SUN_OFFSET.x));
 
-  const rng = mulberry32(99);
-  for (let z = 30; z > 30 - len; z -= 12) {
-    for (const side of [-1, 1]) {
-      const [key, scale] = SCENERY[Math.floor(rng() * SCENERY.length)];
-      const s = cloneStatic(key, scale * (0.85 + rng() * 0.3));
-      s.position.set(side * (ROAD_HALF + 1.5 + rng() * 6), 0, z - rng() * 6);
-      s.rotation.y = rng() * Math.PI * 2;
-      levelGroup.add(s);
-    }
-  }
   for (let z = 20; z > 30 - len; z -= 30) {
     for (const side of [-1, 1]) {
       const lamp = cloneStatic('lamp', 6);
@@ -666,7 +680,7 @@ function hitBarrel(b, dmg) {
   if (b.hp <= 0) {
     destroyBarrel(b);
     spawnDebris(scene, tmpPos.set(b.x, 0.5, b.z), b.reward.type === 'weapon' ? 0x8a5a3c : 0xc0662a, 10, 0.4, 7);
-    fx.burst(tmpPos.set(b.x, 1, b.z), 0xffb347);
+    fx.explosion(tmpPos.set(b.x, 1, b.z));
     fx.coins(tmpPos.set(b.x, 1.2, b.z), 8);
     fx.shake(0.4, 0.3);
     runCoins += 5;
@@ -696,8 +710,11 @@ function useSkill(id) {
   } else if (id === 'shock') {
     shockT = 0.5;
     const dmg = 60 * level.L;
+    let bolts = 0;
     for (const zb of zombies) {
-      if (zb.alive && Math.hypot(zb.x - squad.x, zb.z - squad.z) < 30) damageZombie(zb, dmg);
+      if (!zb.alive || Math.hypot(zb.x - squad.x, zb.z - squad.z) >= 30) continue;
+      if (bolts++ < 12) fx.bolt(tmpPos.set(zb.x, 1.6, zb.z));
+      damageZombie(zb, dmg);
     }
     if (boss && boss.alive && Math.abs(boss.z - squad.z) < 30) damageBoss(dmg);
   } else if (id === 'inferno') {
@@ -882,6 +899,11 @@ function update(dt) {
   if (infernoT > 0) infernoT -= dt;
   infernoZone.visible = infernoT > 0;
   infernoZone.position.set(0, 0.05, squad.z - 12);
+  if (infernoT > 0) {
+    for (let i = 0; i < 3; i++) {
+      if (Math.random() < 15 * dt) fx.fire(tmpPos.set((Math.random() - 0.5) * ROAD_HALF * 2, 0.5, squad.z - 4 - Math.random() * 16));
+    }
+  }
   if (shockT > 0) {
     shockT -= dt;
     const s = 1 + (0.5 - shockT) * 60;
@@ -915,6 +937,9 @@ function updateCamera(dt) {
   shakeOffset(dt, shakeVec);
   camera.position.set(squad.x * 0.4 + shakeVec.x, 13 + shakeVec.y, squad.z + 15 + shakeVec.z);
   camera.lookAt(squad.x * 0.3 + shakeVec.x, 0, squad.z - 14);
+  // Keep the shadow frustum centred just ahead of the squad.
+  sun.target.position.set(0, 0, squad.z - 12);
+  sun.position.copy(sun.target.position).add(SUN_OFFSET);
 }
 
 function updateAnimations(dt) {
@@ -1042,6 +1067,7 @@ function frame(now) {
   stepPhysics(dt, scene);
   layoutSquad();
   updateCamera(dt);
+  updateCityLod(camera.position.z);
   updateFx(dt, camera, window.innerWidth, window.innerHeight);
   updateHud();
   renderer.render(scene, camera);
